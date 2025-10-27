@@ -1,45 +1,35 @@
+// internal/store/store.go
 package store
 
 import (
-	"context"
-	"database/sql"
-	"time"
+	"fmt"
+	"log"
 
+	"github.com/jmoiron/sqlx" // <--- ADICIONE ESTE
 	_ "github.com/lib/pq"
 )
 
-// Store wraps access to the database.
+// Store agora usa sqlx.DB
 type Store struct {
-	DB *sql.DB
+	DB *sqlx.DB // <--- MUDANÇA AQUI (de sql.DB para sqlx.DB)
 }
 
-// NewPostgresStore initializes a new Store backed by Postgres using the provided
-// connection string (lib/pq format, e.g., "host=... port=... user=... password=... dbname=... sslmode=disable").
+// NewPostgresStore cria uma nova conexão com o banco de dados
 func NewPostgresStore(connStr string) (*Store, error) {
-	db, err := sql.Open("postgres", connStr)
+	// Usamos sqlx.Open em vez de sql.Open
+	db, err := sqlx.Open("postgres", connStr) // <--- MUDANÇA AQUI
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("falha ao abrir conexão sqlx: %w", err)
 	}
 
-	// Reasonable pool settings for a small service; adjust as needed
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(30 * time.Minute)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	if err := db.PingContext(ctx); err != nil {
-		_ = db.Close()
-		return nil, err
+	// Pinga o banco de dados para garantir que a conexão está viva
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("falha ao pingar banco de dados: %w", err)
 	}
 
-	return &Store{DB: db}, nil
-}
+	log.Println("Conectado ao banco de dados com sucesso! (usando sqlx)")
 
-// Close closes the underlying database connection.
-func (s *Store) Close() error {
-	if s == nil || s.DB == nil {
-		return nil
-	}
-	return s.DB.Close()
+	return &Store{
+		DB: db,
+	}, nil
 }

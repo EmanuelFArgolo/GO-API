@@ -42,7 +42,7 @@ func main() {
 	mux.HandleFunc("/health", handlers.HealthCheckHandler)
 	mux.HandleFunc("/api/v1/quiz/create", handlers.CreateQuizHandler) // <-- OUR NEW ENDPOINT
 	// (Future) mux.HandleFunc("/api/v1/quiz/submit", handlers.SubmitAnswersHandler)
-
+	mux.HandleFunc("/api/v1/quiz/submit", handlers.SubmitAnswersHandler)
 	// 8. Start the Server
 	serverAddr := ":" + cfg.Port
 	log.Printf("Server running on http://localhost:%s\n", cfg.Port)

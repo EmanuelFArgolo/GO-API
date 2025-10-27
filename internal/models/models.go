@@ -96,3 +96,33 @@ type QuestionAPI struct {
 	Question string   `json:"question"` // The question text
 	Options  []string `json:"options"`  // The options
 }
+
+type SubmissionRequest struct {
+	QuizID  string       `json:"quiz_id"`
+	UserID  string       `json:"user_id"` // Usando string para consistência
+	Answers []UserAnswer `json:"answers"`
+}
+
+// UserAnswer é a resposta de uma única pergunta
+type UserAnswer struct {
+	QuestionID     string `json:"question_id"`     // O ID da pergunta (ex: "1", "2")
+	SelectedOption string `json:"selected_option"` // O *texto* da opção que o usuário escolheu
+}
+
+// SubmissionResponse é o que retornamos após a submissão
+type SubmissionResponse struct {
+	SubmissionID int     `json:"submission_id"`
+	Score        float64 `json:"score"`
+	CorrectCount int     `json:"correct_count"`
+	TotalCount   int     `json:"total_count"`
+	Message      string  `json:"message"`
+}
+type UserStatsResponse struct {
+	UserID                    string  `json:"user_id"`
+	TotalQuizzesRealizados    int     `json:"total_quizzes_realizados"`
+	TotalPerguntasRespondidas int     `json:"total_perguntas_respondidas"`
+	TotalAcertos              int     `json:"total_acertos"`
+	TotalErros                int     `json:"total_erros"`
+	PercentagemAcerto         float64 `json:"percentagem_acerto"`
+	PontuacaoMedia            float64 `json:"pontuacao_media"`
+}

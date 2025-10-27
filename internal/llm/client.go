@@ -1,11 +1,11 @@
 package llm
 
 import (
-	"bytes"
+	"bytes" // <-- IMPORT ESTÁ AQUI
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
+	"io" // <-- IMPORT ESTÁ AQUI
 	"log"
 	"net/http"
 	"strings"
@@ -31,15 +31,11 @@ func NewClient(endpoint, model string) *Client {
 }
 
 // --- Ollama Specific Structs ---
-
-// OllamaGenerateRequest is what Ollama /api/generate expects
 type OllamaGenerateRequest struct {
 	Model  string `json:"model"`
 	Prompt string `json:"prompt"`
 	Stream bool   `json:"stream"`
 }
-
-// OllamaGenerateResponse is what Ollama returns (when stream: false)
 type OllamaGenerateResponse struct {
 	Model     string    `json:"model"`
 	CreatedAt time.Time `json:"created_at"`
@@ -48,25 +44,19 @@ type OllamaGenerateResponse struct {
 }
 
 // --- Our Expected Output Structs ---
-
-// LLMQuestionResponse is the format we *asked* the LLM to give us
 type LLMQuestionResponse struct {
 	Subject       string   `json:"subject"`
 	QuestionText  string   `json:"question"`
 	Options       []string `json:"options"`
 	CorrectAnswer string   `json:"correct_answer"`
 }
-
-// LLMWrapper is to capture the {"questions": [...]} response from the LLM
 type LLMWrapper struct {
 	Questions []LLMQuestionResponse `json:"questions"`
 }
 
-// buildPrompt creates the actual text prompt for the LLM
+// buildPrompt (Mantendo 10 perguntas)
 func buildPrompt(theme string, wrongSubjects []string) string {
 	subjectsStr := strings.Join(wrongSubjects, ", ")
-
-	// Prompt pedindo 5 perguntas e o formato de objeto wrapper
 	return fmt.Sprintf(`
 	Crie um quiz de 10 perguntas sobre o tema principal '%s'.
 	O foco principal do quiz deve ser nestes tópicos: %s.
@@ -108,16 +98,19 @@ func (c *Client) GenerateQuiz(ctx context.Context, theme string, subjects []stri
 	log.Println("-------------------------------------------------------")
 
 	// 3. Send the request
+	// 'bytes.NewBuffer' usa o import "bytes"
 	req, err := http.NewRequestWithContext(ctx, "POST", c.endpoint, bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request for Ollama: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
+	// 'res' É DECLARADO AQUI
 	res, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request to Ollama: %w", err)
 	}
+	// 'res.Body' É USADO AQUI
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
@@ -125,6 +118,8 @@ func (c *Client) GenerateQuiz(ctx context.Context, theme string, subjects []stri
 		log.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 		log.Printf("[LLM Response] ERRO: Status não-OK recebido: %s", res.Status)
 
+		// 'io.ReadAll' usa o import "io"
+		// 'res.Body' É USADO AQUI
 		bodyBytes, readErr := io.ReadAll(res.Body)
 		if readErr != nil {
 			log.Printf("[LLM Response] Erro ao ler body da resposta de erro: %v", readErr)
@@ -138,6 +133,7 @@ func (c *Client) GenerateQuiz(ctx context.Context, theme string, subjects []stri
 
 	// 4. Decode the *Ollama* response
 	var ollamaRes OllamaGenerateResponse
+	// 'res.Body' É USADO AQUI
 	if err := json.NewDecoder(res.Body).Decode(&ollamaRes); err != nil {
 		return nil, fmt.Errorf("failed to decode Ollama response: %w", err)
 	}
@@ -145,13 +141,26 @@ func (c *Client) GenerateQuiz(ctx context.Context, theme string, subjects []stri
 	// 5. O JSON que queremos está DENTRO da string 'ollamaRes.Response'.
 	log.Printf("[LLM Response] Raw string from LLM: %s", ollamaRes.Response)
 
-	// Limpa a string (LLMs às vezes adicionam markdown)
-	jsonString := strings.TrimSpace(ollamaRes.Response)
-	if strings.HasPrefix(jsonString, "```json") {
-		jsonString = strings.TrimPrefix(jsonString, "```json")
-		jsonString = strings.TrimSuffix(jsonString, "```")
-		jsonString = strings.TrimSpace(jsonString)
+	jsonString := ollamaRes.Response // Começa com a string raw
+
+	// Encontra o primeiro '{'
+	firstBracket := strings.Index(jsonString, "{")
+	if firstBracket == -1 {
+		log.Printf("[LLM Error] JSON da LLM não continha um '{'.")
+		return nil, fmt.Errorf("LLM response did not contain JSON opening bracket")
 	}
+
+	// Encontra o último '}'
+	lastBracket := strings.LastIndex(jsonString, "}")
+	if lastBracket == -1 {
+		log.Printf("[LLM Error] JSON da LLM não continha um '}'.")
+		return nil, fmt.Errorf("LLM response did not contain JSON closing bracket")
+	}
+
+	// Corta a string para ser apenas o JSON
+	jsonString = jsonString[firstBracket : lastBracket+1]
+
+	log.Printf("[LLM Response] Cleaned JSON string to be parsed: %s", jsonString) // Novo log
 
 	// Decodifica usando o Wrapper
 	var wrappedResponse LLMWrapper
