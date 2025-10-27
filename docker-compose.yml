@@ -1,0 +1,50 @@
+services:
+  api:
+    build:
+      context: . # Usa o Dockerfile na pasta atual
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080" # Expõe a porta 8080 do container na porta 8080 do host
+    environment:
+      # Variáveis de ambiente que nossa API Go vai ler
+      DB_HOST: db_quiz
+      DB_PORT: 5432
+      DB_USER: ${DB_USER}       # Pega do arquivo .env
+      DB_PASSWORD: ${DB_PASSWORD} # Pega do arquivo .env
+      DB_NAME: ${DB_NAME}       # Pega do arquivo .env
+      LLM_ENDPOINT: ${LLM_ENDPOINT} # Pega do arquivo .env
+      LLM_MODEL: ${LLM_MODEL}       # Pega do arquivo .env
+    depends_on:
+      db_quiz:
+        condition: service_healthy # Espera o DB estar pronto
+    networks:
+      - quiz-net
+
+  # 2. O Banco de Dados PostgreSQL
+  db_quiz:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432" # Expõe a porta 5432 do container na 5433 do host
+      # (Evita conflito com Postgres local)
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Persiste os dados
+    healthcheck:
+      # Testa se o Postgres está pronto para aceitar conexões
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - quiz-net
+
+# Define os volumes e redes
+volumes:
+  postgres_data: # Volume nomeado para persistir o banco
+
+networks:
+  quiz-net:
+    driver: bridge
