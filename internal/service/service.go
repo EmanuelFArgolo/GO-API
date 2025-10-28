@@ -183,3 +183,43 @@ func (s *QuizService) SubmitAnswers(ctx context.Context, req models.SubmissionRe
 
 	return response, nil
 }
+
+func (s *QuizService) GetUserStats(ctx context.Context, userIDStr string) (*models.UserStatsResponse, error) {
+
+	// 1. Validar e Converter Input
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		// Retorna o nosso erro personalizado para o handler apanhar
+		return nil, fmt.Errorf("%w: user_id inválido", ErrInvalidInput)
+	}
+
+	// 2. Chamar o Store
+	stats, err := s.store.GetUserStats(ctx, userID)
+	if err != nil {
+		// (O store.GetUserStats já trata o caso de 'ErrNoRows')
+		return nil, fmt.Errorf("falha ao buscar estatísticas no serviço: %w", err)
+	}
+
+	// (Poderíamos verificar aqui se o utilizador existe, mas o GetUserStats já retorna zero, o que é bom)
+
+	return stats, nil
+}
+
+// GetUserSubmissions é a lógica de negócios para buscar o histórico
+func (s *QuizService) GetUserSubmissions(ctx context.Context, userIDStr string) ([]models.UserSubmissionHistoryResponse, error) {
+
+	// 1. Validar e Converter Input
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("%w: user_id inválido", ErrInvalidInput)
+	}
+
+	// 2. Chamar o Store
+	submissions, err := s.store.GetUserSubmissions(ctx, userID)
+	if err != nil {
+		// (O store já trata o caso de 'ErrNoRows')
+		return nil, fmt.Errorf("falha ao buscar histórico no serviço: %w", err)
+	}
+
+	return submissions, nil
+}

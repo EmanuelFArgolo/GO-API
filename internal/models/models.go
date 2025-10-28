@@ -126,3 +126,11 @@ type UserStatsResponse struct {
 	PercentagemAcerto         float64 `json:"percentagem_acerto"`
 	PontuacaoMedia            float64 `json:"pontuacao_media"`
 }
+type UserSubmissionHistoryResponse struct {
+	SubmissionID int       `json:"submission_id"`
+	QuizID       int       `json:"quiz_id"`
+	QuizNome     string    `json:"quiz_nome"` // O nome do quiz
+	TemaNome     string    `json:"tema_nome"` // O nome do tema
+	Pontuacao    float64   `json:"pontuacao"` // A pontuação obtida
+	DataHora     time.Time `json:"data_hora"` // Quando foi feito
+}

@@ -16,6 +16,7 @@ CREATE TABLE tema (
                       nome VARCHAR(100) NOT NULL UNIQUE,
                       descricao TEXT,
                       criacao TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                      ativo BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 -- Tabela: quizzes
@@ -23,7 +24,8 @@ CREATE TABLE quizzes (
                          id SERIAL PRIMARY KEY,
                          nome VARCHAR(100) NOT NULL,
                          tema_id INTEGER NOT NULL REFERENCES tema(id) ON DELETE RESTRICT,
-                         UNIQUE (nome, tema_id)
+                         UNIQUE (nome, tema_id),
+                         ativo BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 -- Tabela: perguntas

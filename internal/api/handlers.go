@@ -136,3 +136,85 @@ func (h *ApiHandlers) SubmitAnswersHandler(w http.ResponseWriter, r *http.Reques
 		log.Printf("Erro ao enviar resposta JSON da submissão: %v", err)
 	}
 }
+
+func (h *ApiHandlers) GetUserStatsHandler(w http.ResponseWriter, r *http.Request) {
+	// 1. Apenas aceita GET
+	if r.Method != http.MethodGet {
+		http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// 2. Ler o Query Parameter "?user_id=1"
+	userID := r.URL.Query().Get("user_id")
+
+	// 3. Validação de Input (Igual às que já fizemos)
+	if userID == "" {
+		http.Error(w, "Input inválido: 'user_id' é obrigatório (query parameter)", http.StatusBadRequest)
+		return
+	}
+
+	// 4. Chamar o Serviço
+	statsResponse, err := h.quizService.GetUserStats(r.Context(), userID)
+
+	// 5. Tratamento Avançado de Erros (Igual ao que já fizemos)
+	if err != nil {
+		if errors.Is(err, service.ErrInvalidInput) {
+			log.Printf("Erro 400 em GetUserStats: %v", err)
+			http.Error(w, "Input inválido: "+err.Error(), http.StatusBadRequest)
+
+		} else {
+			// (Não esperamos ErrNotFound aqui, pois o serviço retorna zero)
+			log.Printf("Erro 500 em GetUserStats: %v", err)
+			http.Error(w, "Falha interna ao buscar estatísticas", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// 6. Enviar a resposta JSON
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(statsResponse); err != nil {
+		log.Printf("Erro ao enviar resposta JSON de estatísticas: %v", err)
+	}
+}
+
+// esse é o handler para o histórico de submissões
+func (h *ApiHandlers) GetUserSubmissionsHandler(w http.ResponseWriter, r *http.Request) {
+	// 1. Apenas aceita GET
+	if r.Method != http.MethodGet {
+		http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// 2. Ler o Query Parameter "?user_id=1"
+	userID := r.URL.Query().Get("user_id")
+
+	// 3. Validação de Input
+	if userID == "" {
+		http.Error(w, "Input inválido: 'user_id' é obrigatório (query parameter)", http.StatusBadRequest)
+		return
+	}
+
+	// 4. Chamar o Serviço
+	submissionsResponse, err := h.quizService.GetUserSubmissions(r.Context(), userID)
+
+	// 5. Tratamento Avançado de Erros
+	if err != nil {
+		if errors.Is(err, service.ErrInvalidInput) {
+			log.Printf("Erro 400 em GetUserSubmissions: %v", err)
+			http.Error(w, "Input inválido: "+err.Error(), http.StatusBadRequest)
+
+		} else {
+			log.Printf("Erro 500 em GetUserSubmissions: %v", err)
+			http.Error(w, "Falha interna ao buscar histórico", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// 6. Enviar a resposta JSON (um array de submissões)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(submissionsResponse); err != nil {
+		log.Printf("Erro ao enviar resposta JSON de histórico: %v", err)
+	}
+}

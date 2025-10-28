@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"quizz-core/internal/models"
 	"strconv"
+	"time"
 )
 
 // statsDBRow é uma struct interna para ler os resultados agregados do SQL
@@ -66,4 +67,64 @@ func (s *Store) GetUserStats(ctx context.Context, userID int) (*models.UserStats
 	}
 
 	return response, nil
+}
+
+// historyDBRow é a struct interna para ler os dados do JOIN
+type historyDBRow struct {
+	SubmissionID int       `db:"id"`
+	QuizID       int       `db:"quizz_id"`
+	QuizNome     string    `db:"quiz_nome"`
+	TemaNome     string    `db:"tema_nome"`
+	Pontuacao    float64   `db:"pontuacao"`
+	DataHora     time.Time `db:"datahora"`
+}
+
+// GetUserSubmissions retorna o histórico de quizzes realizados por um utilizador
+func (s *Store) GetUserSubmissions(ctx context.Context, userID int) ([]models.UserSubmissionHistoryResponse, error) {
+
+	// Esta query junta 3 tabelas para obter os nomes
+	query := `
+		SELECT
+			s.id,
+			s.quizz_id,
+			q.nome AS quiz_nome,
+			t.nome AS tema_nome,
+			s.pontuacao,
+			s.datahora
+		FROM
+			submissao s
+		JOIN
+			quizzes q ON s.quizz_id = q.id
+		JOIN
+			tema t ON q.tema_id = t.id
+		WHERE
+			s.utilizador_id = $1
+		ORDER BY
+			s.datahora DESC
+	`
+
+	var resultsDB []historyDBRow
+	if err := s.DB.SelectContext(ctx, &resultsDB, query, userID); err != nil {
+		// Se não houver linhas, apenas retornamos uma lista vazia, não um erro
+		if err == sql.ErrNoRows {
+			return []models.UserSubmissionHistoryResponse{}, nil
+		}
+		return nil, fmt.Errorf("falha ao buscar histórico de submissões: %w", err)
+	}
+
+	// Converter a struct do DB para a struct da API
+	// (Neste caso, são muito parecidas, mas é uma boa prática)
+	var responseAPI []models.UserSubmissionHistoryResponse
+	for _, r := range resultsDB {
+		responseAPI = append(responseAPI, models.UserSubmissionHistoryResponse{
+			SubmissionID: r.SubmissionID,
+			QuizID:       r.QuizID,
+			QuizNome:     r.QuizNome,
+			TemaNome:     r.TemaNome,
+			Pontuacao:    r.Pontuacao,
+			DataHora:     r.DataHora,
+		})
+	}
+
+	return responseAPI, nil
 }
