@@ -105,16 +105,13 @@ func (s *Store) GetUserSubmissions(ctx context.Context, userID int) ([]models.Us
 
 	var resultsDB []historyDBRow
 	if err := s.DB.SelectContext(ctx, &resultsDB, query, userID); err != nil {
-		// Se não houver linhas, apenas retornamos uma lista vazia, não um erro
-		if err == sql.ErrNoRows {
-			return []models.UserSubmissionHistoryResponse{}, nil
-		}
+		// Não verificamos ErrNoRows, Select não o devolve para slices
 		return nil, fmt.Errorf("falha ao buscar histórico de submissões: %w", err)
 	}
 
 	// Converter a struct do DB para a struct da API
 	// (Neste caso, são muito parecidas, mas é uma boa prática)
-	var responseAPI []models.UserSubmissionHistoryResponse
+	responseAPI := []models.UserSubmissionHistoryResponse{}
 	for _, r := range resultsDB {
 		responseAPI = append(responseAPI, models.UserSubmissionHistoryResponse{
 			SubmissionID: r.SubmissionID,

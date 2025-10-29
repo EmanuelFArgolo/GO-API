@@ -22,6 +22,7 @@ type Tema struct {
 	Nome      string    `json:"nome" db:"nome"`
 	Descricao *string   `json:"descricao,omitempty" db:"descricao"`
 	Criacao   time.Time `json:"criacao" db:"criacao"`
+	Ativo     bool      `json:"ativo" db:"ativo"`
 }
 
 // Quiz (from 'quizzes' table)
@@ -29,6 +30,7 @@ type Quiz struct {
 	ID     int    `json:"id" db:"id"`
 	Nome   string `json:"nome" db:"nome"`
 	TemaID int    `json:"tema_id" db:"tema_id"`
+	Ativo  bool   `json:"ativo" db:"ativo"`
 }
 
 // Pergunta (from 'perguntas' table)
@@ -133,4 +135,49 @@ type UserSubmissionHistoryResponse struct {
 	TemaNome     string    `json:"tema_nome"` // O nome do tema
 	Pontuacao    float64   `json:"pontuacao"` // A pontuação obtida
 	DataHora     time.Time `json:"data_hora"` // Quando foi feito
+}
+
+// SubmissionDetailResponse é a resposta completa para o endpoint de detalhes
+type SubmissionDetailResponse struct {
+	SubmissionID int                      `json:"submission_id"`
+	QuizID       int                      `json:"quiz_id"`
+	QuizNome     string                   `json:"quiz_nome"`
+	TemaNome     string                   `json:"tema_nome"`
+	Pontuacao    float64                  `json:"pontuacao"`
+	DataHora     time.Time                `json:"data_hora"`
+	Perguntas    []QuestionDetailResponse `json:"perguntas"` // Array com os detalhes de cada pergunta
+}
+
+// QuestionDetailResponse contém os detalhes de uma pergunta dentro da submissão
+type QuestionDetailResponse struct {
+	PerguntaID         int                  `json:"pergunta_id"`
+	CorpoPergunta      string               `json:"corpo_pergunta"`
+	Assunto            *string              `json:"assunto,omitempty"`
+	Opcoes             []AnswerOptionDetail `json:"opcoes"`                        // Todas as opções da pergunta
+	RespostaUtilizador *string              `json:"resposta_utilizador,omitempty"` // O texto da opção que o user escolheu
+	RespostaCorreta    string               `json:"resposta_correta"`              // O texto da opção correta
+	Acertou            bool                 `json:"acertou"`                       // Se o user acertou esta pergunta
+}
+
+// AnswerOptionDetail representa uma única opção de resposta
+type AnswerOptionDetail struct {
+	RespostaID int    `json:"resposta_id"`
+	Corpo      string `json:"corpo"`
+}
+
+type HealthStatus string
+
+const (
+	StatusUp   HealthStatus = "UP"
+	StatusDown HealthStatus = "DOWN"
+)
+
+// HealthResponse é a resposta detalhada do endpoint /health
+type HealthResponse struct {
+	OverallStatus HealthStatus            `json:"status"`
+	Dependencies  map[string]HealthStatus `json:"dependencies"`
+}
+type RawQuizResponse struct {
+	UserID     string `json:"user_id"`      // O ID do utilizador que pediu
+	RawLLMJson string `json:"raw_llm_json"` // A string JSON crua vinda da LLM
 }

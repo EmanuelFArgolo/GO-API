@@ -1,0 +1,5 @@
+ALTER TABLE tema
+DROP COLUMN ativo;
+
+ALTER TABLE quizzes
+DROP COLUMN ativo;

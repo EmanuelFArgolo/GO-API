@@ -29,7 +29,7 @@ func (s *Store) SaveGeneratedQuiz(ctx context.Context, req models.CreateQuizRequ
 	// Usamos o 'Theme' (ex: "Biologia Celular") do pedido
 	var tema models.Tema
 	// Tenta buscar o tema pelo nome
-	err = tx.GetContext(ctx, &tema, "SELECT * FROM tema WHERE nome = $1", req.Theme)
+	err = tx.GetContext(ctx, &tema, "SELECT * FROM tema WHERE nome = $1 AND ativo = TRUE", req.Theme)
 
 	if err == sql.ErrNoRows {
 		// Tema não existe, vamos criá-lo
@@ -100,4 +100,37 @@ func (s *Store) SaveGeneratedQuiz(ctx context.Context, req models.CreateQuizRequ
 
 	// Retornamos os objetos criados
 	return &quiz, perguntasSalvas, nil
+}
+
+// DeactivateQuiz faz um "soft-delete" de um quiz, definindo ativo = FALSE
+func (s *Store) DeactivateQuiz(ctx context.Context, quizID int) (int64, error) {
+
+	query := "UPDATE quizzes SET ativo = FALSE WHERE id = $1 AND ativo = TRUE"
+
+	// Usamos ExecContext para UPDATEs
+	result, err := s.DB.ExecContext(ctx, query, quizID)
+	if err != nil {
+		return 0, fmt.Errorf("falha ao executar update para desativar quiz: %w", err)
+	}
+
+	// Verificamos quantas linhas foram realmente alteradas
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("falha ao verificar linhas afetadas: %w", err)
+	}
+
+	return rowsAffected, nil
+}
+
+func (s *Store) GetActiveQuizzesByTheme(ctx context.Context, themeID int) ([]models.Quiz, error) {
+
+	query := "SELECT * FROM quizzes WHERE tema_id = $1 AND ativo = TRUE ORDER BY nome ASC"
+
+	quizzes := []models.Quiz{}
+	if err := s.DB.SelectContext(ctx, &quizzes, query, themeID); err != nil {
+		
+		return nil, fmt.Errorf("falha ao buscar quizzes por tema: %w", err)
+	}
+
+	return quizzes, nil
 }

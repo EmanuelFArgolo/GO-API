@@ -2,6 +2,7 @@
 package store
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -32,4 +33,8 @@ func NewPostgresStore(connStr string) (*Store, error) {
 	return &Store{
 		DB: db,
 	}, nil
+}
+func (s *Store) Ping(ctx context.Context) error {
+	// Usamos PingContext para respeitar timeouts
+	return s.DB.PingContext(ctx)
 }

@@ -40,12 +40,15 @@ func main() {
 	// 7. Configure Routes (connecting URLs to the handler methods)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", handlers.HealthCheckHandler)
-	mux.HandleFunc("/api/v1/quiz/create", handlers.CreateQuizHandler) // <-- OUR NEW ENDPOINT
+	mux.HandleFunc("/api/v1/quiz/create", handlers.CreateQuizHandler)
 	// (Future) mux.HandleFunc("/api/v1/quiz/submit", handlers.SubmitAnswersHandler)
 	mux.HandleFunc("/api/v1/quiz/submit", handlers.SubmitAnswersHandler)
-	mux.HandleFunc("/api/v1/users/stats", handlers.GetUserStatsHandler)
+	mux.HandleFunc(" ", handlers.GetUserStatsHandler)
 	mux.HandleFunc("/api/v1/users/submissions", handlers.GetUserSubmissionsHandler)
-
+	mux.HandleFunc("/api/v1/themes", handlers.GetAllThemesHandler)
+	mux.HandleFunc("/api/v1/quizzes/deactivate", handlers.DeactivateQuizHandler)
+	mux.HandleFunc("/api/v1/submissions/details", handlers.GetSubmissionDetailsHandler)
+	mux.HandleFunc("/api/v1/quizzes", handlers.GetQuizzesByThemeHandler)
 	// 8. Start the Server
 	serverAddr := ":" + cfg.Port
 	log.Printf("Server running on http://localhost:%s\n", cfg.Port)
